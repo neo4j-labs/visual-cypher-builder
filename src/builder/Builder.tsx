@@ -19,6 +19,7 @@ import { ClipboardDocumentIconOutline, PlayCircleIconOutline, QueryBrowserIcon, 
 import { extractVariables, updateBuilderVariables } from "./logic/VariablesLogic";
 import TemplatesModal from "./templates/TemplatesModal";
 import { updateCypherWizard } from "./logic/WizardLogic";
+import QueryRunner from "./queryRunner/QueryRunner";
 
 const wrapperStyle = {
     display: "flex",
@@ -179,181 +180,176 @@ export default function Builder(props: {
                         display: "flex",
                         flexDirection: "column",
                         marginRight: 'auto',
-                        flex: 8 /* Takes up 2 parts of the width */,
+                        flex: 16 /* Takes up 2 parts of the width */,
                         backgroundColor: "#f0f0f0",
-                        padding: "10px",
                     }}
                 >
-                    <h4 style={{ marginBottom: '10px' }}>Builder
-                        &nbsp;
+                    <div style={{ padding: "10px",  }}>
+                        <h4 style={{ marginBottom: '10px' }}>Builder
+                            &nbsp;
 
-                        <Tooltip type="simple">
-                            <Tooltip.Trigger>
-                                <IconButton className='hidden md:inline-flex' ariaLabel='Help' size='medium'
-                                    onClick={() => {
-                                        const { newItems, newElements } = resetBuilderQuery(items, elements);
-                                        setItems(newItems);
-                                        setElements(newElements);
-                                    }}  >
-                                    <TrashIconOutline aria-label='Help' />
-                                </IconButton>
-                            </Tooltip.Trigger>
-                            <Tooltip.Content>Reset</Tooltip.Content>
-                        </Tooltip>
-                        &nbsp;
-                        <Tooltip type="simple">
-                            <Tooltip.Trigger>
-                                <IconButton className='hidden md:inline-flex' ariaLabel='Help' size='medium' onClick={() => {
-                                    setTemplatesModalNeverOpened(false);
-                                    setTemplatesModalOpen(true);
-                                }}  >
-                                    <WrenchScrewdriverIconOutline aria-label='Help' />
-                                    {templatesModalNeverOpened ? <span 
-                                    style={{
-                                        position: 'absolute',
-                                        marginBottom: 20,
-                                        transform: 'translate(50%, -50%)',
-                                        background: 'grey', //  greyish blue
-                                        color: 'white',
-                                        marginLeft: '-3px',
-                                        marginTop: '-20px',
-                                        borderRadius: '15px',
-                                        padding: '0.25rem',
-                                        fontSize: '0.75rem',
-                                        lineHeight: '1',
-                                        // border: '1px solid white',
-                                        display: 'inline-block',
-                                        minWidth: '1.25rem',
-                                        textAlign: 'center',
-                                      }}>
-                                        {queryTemplates?.length}
-                                    </span> : <></>}
-                                </IconButton>
-                            </Tooltip.Trigger>
-                            <Tooltip.Content>Query templates</Tooltip.Content>
-                        </Tooltip>
-
-                    </h4>
-
-                    {items
-                        .slice(SIDEBAR_CONTAINER_COUNT + 1)
-                        .map((containerItems, index) => (
-                            <QueryContainer
-                                key={index + 1}
-                                id={(index + 1).toString()}
-                                activeId={activeId}
-                                elements={elements}
-                                schema={schema}
-                                variables={variables}
-                                setElement={(id: any, element: any) => {
-                                    const newElements = { ...elements };
-                                    newElements[id] = element;
-                                    setElements(newElements);
-                                }}
-                                containerItems={containerItems}
-                                onClick={(id: any) => console.log(id)}
-                                onShiftClick={(id: any) => handleSortableItemDelete(id, items, elements, setItems, setElements, setActiveId)}
-                                dragging={activeId !== undefined}
-                            />
-                        ))}
-
-                    <div style={{ border: '2px dashed #ddd', marginTop: 20 }}>
-                        <div style={{ backgroundColor: "#fff", fontSize: "14px", paddingLeft: 5, paddingTop: 5 }}>
-                            🧙
-                            {wizardIsActive ?
-                                <img src='https://fonts.gstatic.com/s/e/notoemoji/latest/2728/512.webp' style={{ width: '18px', display: 'inline-block' }}></img>
-                                : <img src='https://fonts.gstatic.com/s/e/notoemoji/latest/2728/emoji.svg' style={{ width: '18px', display: 'inline-block' }}></img>}
-                            &nbsp;Cypher Wizard:&nbsp;&nbsp;&nbsp;
-
-                            <span style={{ color: 'grey' }}>{wizardCaption}</span>
-                        </div>
-
-                        <FooterContainer
-                            key={SIDEBAR_CONTAINER_COUNT} // ordered after the sidebar containres
-                            id={SIDEBAR_CONTAINER_COUNT.toString()}
-                            elements={elements}
-                            setElement={(id: any, element: any) => setElements({ ...elements, [id]: element })}
-                            containerItems={items[SIDEBAR_CONTAINER_COUNT]}
-                            onClick={(id: string | number, itemRect: { width: number; left: number; top: number; height: number; }) => handleSortableItemClick(id, itemRect, items, elements, variables, schema, setActiveId, setItems, setElements)}
-                        />
-                    </div>
-                </div>
-                <div
-                    className="right-rows"
-                    style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        flex: 7 /* Takes up 2 parts of the width */,
-                        backgroundColor: "#f0f0f0",
-                        padding: "10px",
-                    }}
-
-                >
-                    <h4 style={{ marginBottom: '12px' }}>Query
-                        &nbsp;
-                        {/* {variables.length > 0 ?
                             <Tooltip type="simple">
                                 <Tooltip.Trigger>
-                                    <div >
-                                        <IconButton
-
-                                            ref={variablesButtonRef}
-                                            htmlAttributes={{
-                                                onClick: () => setVariablesExpanded(old => !old)
-                                            }} ariaLabel={"Variables"}>
-                                            <VariableIconSolid aria-label='Variables' />
-                                        </IconButton>
-
-                                        <Menu isOpen={variablesExpanded} anchorRef={variablesButtonRef} onClose={() => setVariablesExpanded(false)}>
-                                            <Menu.Items htmlAttributes={{ id: 'default-menu' }}>
-                                                {variables.map((variable: any) => (
-                                                    <Menu.Item isDisabled={true}
-                                                        key={variable.text}
-                                                        // @ts-ignore
-                                                        title={<code>{variable.text}  <b>{variable.types.filter(v => v !== 'text').join(', ')}</b></code>} onExpandedChange={(expanded: boolean | ((prevState: boolean) => boolean)) => setVariablesExpanded(expanded)}>
-                                                    </Menu.Item>
-                                                ))}
-                                            </Menu.Items>
-                                        </Menu>
-                                    </div>
-                                </Tooltip.Trigger>
-                                <Tooltip.Content>Show variables</Tooltip.Content>
-                            </Tooltip>
-                            : <></>} */}
-                        &nbsp;
-                        <Tooltip type="simple">
-                            <Tooltip.Trigger>
-                                <IconButton className='hidden md:inline-flex' ariaLabel='Help' size='medium' onClick={() => {
-                                    const id = toast.neutral('Copied to clipboard', { shouldAutoClose: true, isCloseable: true });
-                                    navigator.clipboard.writeText(cypher);
-                                    toast.close(id);
-                                }}  >
-                                    <ClipboardDocumentIconOutline aria-label='Help' />
-                                </IconButton>
-                            </Tooltip.Trigger>
-                            <Tooltip.Content>Copy to clipboard</Tooltip.Content>
-                        </Tooltip>
-                        &nbsp;
-                        {connected ?
-                            <Tooltip type="simple">
-                                <Tooltip.Trigger>
-                                    <IconButton ariaLabel='Help' size='medium' onClick={() => {
-                                        window.open('https://browser.neo4j.io/?connectURL=' + connection.protocol + '%2Bs%3A%2F%2F' + connection.user + '%40' + connection.uri + '%3A' + connection.port, '_blank');
-                                    }}  >
-                                        <PlayCircleIconOutline aria-label='Browser' />
+                                    <IconButton className='hidden md:inline-flex' ariaLabel='Help' size='medium'
+                                        onClick={() => {
+                                            const { newItems, newElements } = resetBuilderQuery(items, elements);
+                                            setItems(newItems);
+                                            setElements(newElements);
+                                        }}  >
+                                        <TrashIconOutline aria-label='Help' />
                                     </IconButton>
                                 </Tooltip.Trigger>
-                                <Tooltip.Content>Open Browser</Tooltip.Content>
-                            </Tooltip> : <></>}
-                        &nbsp;
+                                <Tooltip.Content>Reset</Tooltip.Content>
+                            </Tooltip>
+                            &nbsp;
+                            <Tooltip type="simple">
+                                <Tooltip.Trigger>
+                                    <IconButton className='hidden md:inline-flex' ariaLabel='Help' size='medium' onClick={() => {
+                                        setTemplatesModalNeverOpened(false);
+                                        setTemplatesModalOpen(true);
+                                    }}  >
+                                        <WrenchScrewdriverIconOutline aria-label='Help' />
+                                        {templatesModalNeverOpened ? <span 
+                                        style={{
+                                            position: 'absolute',
+                                            marginBottom: 20,
+                                            transform: 'translate(50%, -50%)',
+                                            background: 'grey', //  greyish blue
+                                            color: 'white',
+                                            marginLeft: '-3px',
+                                            marginTop: '-20px',
+                                            borderRadius: '15px',
+                                            padding: '0.25rem',
+                                            fontSize: '0.75rem',
+                                            lineHeight: '1',
+                                            // border: '1px solid white',
+                                            display: 'inline-block',
+                                            minWidth: '1.25rem',
+                                            textAlign: 'center',
+                                        }}>
+                                            {queryTemplates?.length}
+                                        </span> : <></>}
+                                    </IconButton>
+                                </Tooltip.Trigger>
+                                <Tooltip.Content>Query templates</Tooltip.Content>
+                            </Tooltip>
+
+                        </h4>
+
+                        {items
+                            .slice(SIDEBAR_CONTAINER_COUNT + 1)
+                            .map((containerItems, index) => (
+                                <QueryContainer
+                                    key={index + 1}
+                                    id={(index + 1).toString()}
+                                    activeId={activeId}
+                                    elements={elements}
+                                    schema={schema}
+                                    variables={variables}
+                                    setElement={(id: any, element: any) => {
+                                        const newElements = { ...elements };
+                                        newElements[id] = element;
+                                        setElements(newElements);
+                                    }}
+                                    containerItems={containerItems}
+                                    onClick={(id: any) => console.log(id)}
+                                    onShiftClick={(id: any) => handleSortableItemDelete(id, items, elements, setItems, setElements, setActiveId)}
+                                    dragging={activeId !== undefined}
+                                />
+                            ))}
+
+                        <div style={{ border: '2px dashed #ddd', marginTop: 20 }}>
+                            <div style={{ backgroundColor: "#fff", fontSize: "14px", paddingLeft: 5, paddingTop: 5 }}>
+                                🧙
+                                {wizardIsActive ?
+                                    <img src='https://fonts.gstatic.com/s/e/notoemoji/latest/2728/512.webp' style={{ width: '18px', display: 'inline-block' }}></img>
+                                    : <img src='https://fonts.gstatic.com/s/e/notoemoji/latest/2728/emoji.svg' style={{ width: '18px', display: 'inline-block' }}></img>}
+                                &nbsp;Cypher Wizard:&nbsp;&nbsp;&nbsp;
+
+                                <span style={{ color: 'grey' }}>{wizardCaption}</span>
+                            </div>
+
+                            <FooterContainer
+                                key={SIDEBAR_CONTAINER_COUNT} // ordered after the sidebar containres
+                                id={SIDEBAR_CONTAINER_COUNT.toString()}
+                                elements={elements}
+                                setElement={(id: any, element: any) => setElements({ ...elements, [id]: element })}
+                                containerItems={items[SIDEBAR_CONTAINER_COUNT]}
+                                onClick={(id: string | number, itemRect: { width: number; left: number; top: number; height: number; }) => handleSortableItemClick(id, itemRect, items, elements, variables, schema, setActiveId, setItems, setElements)}
+                            />
+                        </div>
+                    </div>
+                    <div style={{ padding: "10px",  }}>
+                        <h4 style={{ marginBottom: '12px' }}>Query
+                            &nbsp;
+                            {/* {variables.length > 0 ?
+                                <Tooltip type="simple">
+                                    <Tooltip.Trigger>
+                                        <div >
+                                            <IconButton
+
+                                                ref={variablesButtonRef}
+                                                htmlAttributes={{
+                                                    onClick: () => setVariablesExpanded(old => !old)
+                                                }} ariaLabel={"Variables"}>
+                                                <VariableIconSolid aria-label='Variables' />
+                                            </IconButton>
+
+                                            <Menu isOpen={variablesExpanded} anchorRef={variablesButtonRef} onClose={() => setVariablesExpanded(false)}>
+                                                <Menu.Items htmlAttributes={{ id: 'default-menu' }}>
+                                                    {variables.map((variable: any) => (
+                                                        <Menu.Item isDisabled={true}
+                                                            key={variable.text}
+                                                            // @ts-ignore
+                                                            title={<code>{variable.text}  <b>{variable.types.filter(v => v !== 'text').join(', ')}</b></code>} onExpandedChange={(expanded: boolean | ((prevState: boolean) => boolean)) => setVariablesExpanded(expanded)}>
+                                                        </Menu.Item>
+                                                    ))}
+                                                </Menu.Items>
+                                            </Menu>
+                                        </div>
+                                    </Tooltip.Trigger>
+                                    <Tooltip.Content>Show variables</Tooltip.Content>
+                                </Tooltip>
+                                : <></>} */}
+                            &nbsp;
+                            <Tooltip type="simple">
+                                <Tooltip.Trigger>
+                                    <IconButton className='hidden md:inline-flex' ariaLabel='Help' size='medium' onClick={() => {
+                                        const id = toast.neutral('Copied to clipboard', { shouldAutoClose: true, isCloseable: true });
+                                        navigator.clipboard.writeText(cypher);
+                                        toast.close(id);
+                                    }}  >
+                                        <ClipboardDocumentIconOutline aria-label='Help' />
+                                    </IconButton>
+                                </Tooltip.Trigger>
+                                <Tooltip.Content>Copy to clipboard</Tooltip.Content>
+                            </Tooltip>
+                            &nbsp;
+                            {connected ?
+                                <Tooltip type="simple">
+                                    <Tooltip.Trigger>
+                                        <IconButton ariaLabel='Help' size='medium' onClick={() => {
+                                            window.open('https://browser.neo4j.io/?connectURL=' + connection.protocol + '%2Bs%3A%2F%2F' + connection.user + '%40' + connection.uri + '%3A' + connection.port, '_blank');
+                                        }}  >
+                                            <PlayCircleIconOutline aria-label='Browser' />
+                                        </IconButton>
+                                    </Tooltip.Trigger>
+                                    <Tooltip.Content>Open Browser</Tooltip.Content>
+                                </Tooltip> : <></>}
+                            &nbsp;
 
 
 
-                    </h4>
+                        </h4>
 
-                    <CodeEditor cypher={cypher} />
+                        <CodeEditor cypher={cypher} />
 
+                    </div>
+                    <div style={{ padding: "10px",  }}>
+                        <QueryRunner/>
+                    </div>
                 </div>
+                
                 <DragOverlay>
                     {activeId ? <SortableBlock
                         id={activeId}
