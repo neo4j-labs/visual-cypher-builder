@@ -38,7 +38,7 @@ export default function ConnectionModal({
     const protocols = ['neo4j', 'neo4j+s', 'neo4j+ssc'];
     const [protocol, setProtocol] = useState<string>(connection?.protocol ? connection.protocol : 'neo4j+s');
     const [URI, setURI] = useState<string>(connection?.uri ? connection.uri : 'localhost');
-    const [port, setPort] = useState<number>(connection?.port ? connection.port : '7687');
+    const [port, setPort] = useState<string>(connection?.port ? connection.port : '7687');
     const [database, setDatabase] = useState<string>(connection?.database ? connection.database : 'neo4j');
     const [username, setUsername] = useState<string>(connection?.user ? connection.user : 'neo4j');
     const [password, setPassword] = useState<string>(connection?.password ? connection.password : '');
@@ -58,7 +58,7 @@ export default function ConnectionModal({
         setURI(uriHost);
         const uriProtocol = uriParts.pop() || protocol;
         setProtocol(uriProtocol);
-        const uriPort = Number(uriParts.pop()) || port;
+        const uriPort = uriParts.pop() || port;
         setPort(uriPort);
     };
 
@@ -97,6 +97,41 @@ export default function ConnectionModal({
         });
     }
 
+    const onDropHandler = async (files: Partial<globalThis.File>[]) => {
+        setIsLoading(true);
+        if (files.length) {
+          const [file] = files;
+          try {
+            if (file.text && file.size !== 0) {
+              const text = await file.text();
+              const lines = text.split(/\r?\n/);
+              const configObject = lines.reduce((acc: Record<string, string>, line: string) => {
+                if (line.startsWith('#') || line.trim() === '') {
+                  return acc;
+                }
+    
+                const [key, value] = line.split('=');
+                if (['NEO4J_URI', 'NEO4J_USERNAME', 'NEO4J_PASSWORD', 'NEO4J_DATABASE', 'NEO4J_PORT'].includes(key)) {
+                  acc[key] = value;
+                }
+                return acc;
+              }, {});
+              parseAndSetURI(configObject.NEO4J_URI);
+              setUsername(configObject.NEO4J_USERNAME ?? 'neo4j');
+              setPassword(configObject.NEO4J_PASSWORD ?? '');
+              setDatabase(configObject.NEO4J_DATABASE ?? 'neo4j');
+              setPort(configObject.NEO4J_PORT ?? "7687");
+            } else {
+              setMessage({ type: 'danger', content: 'Please drop a valid file' });
+            }
+          } catch (err: any) {
+            console.log({ err });
+            setMessage({ type: 'danger', content: err.message });
+          }
+        }
+        setIsLoading(false);
+    };
+
     return (
         <>
             <Dialog size='small' isOpen={open} aria-labelledby='form-dialog-title'
@@ -109,6 +144,26 @@ export default function ConnectionModal({
                 <Dialog.Content className='n-flex n-flex-col n-gap-token-4' style={{}}>
                     {message && <Banner type={message.type}>{message.content}</Banner>}
                     {connectionMessage && <Banner type={connectionMessage.type}>{connectionMessage.content}</Banner>}
+
+                    <div className='n-flex max-h-60'>
+                        <Dropzone
+                            isTesting={false}
+                            customTitle={<>{"Drop your neo4j credentials file here"}</>}
+                            className='n-p-6 end-0 top-0 w-full h-full'
+                            acceptedFileExtensions={['.txt', '.env']}
+                            dropZoneOptions={{
+                                onDrop: (f: Partial<globalThis.File>[]) => {
+                                onDropHandler(f);
+                                },
+                                maxSize: 500,
+                                onDropRejected: (e) => {
+                                if (e.length) {
+                                    setMessage({ type: 'danger', content: 'Failed To Upload, File is larger than 500 bytes' });
+                                }
+                                },
+                            }}
+                        />
+                    </div>
 
                     <div className='n-flex n-flex-row n-flex-wrap'>
                         <Select
