@@ -1,4 +1,6 @@
 # Visual Cypher Builder 🔨
+
+> This is an experimental Neo4j Labs project and not part of Neo4j's supported product lineup. See the [Neo4j Labs disclaimer](./LABS_DISCLAIMER.txt).
 The **Visual Cypher Builder** is a user-friendly tool that simplifies the process of building graph queries in Neo4j's Cypher language. With an intuitive drag-and-drop interface, it helps users — from beginners to experts — visually construct Cypher queries.  
 
 Whether you're just starting with graph databases or looking for a faster way to build complex queries, this tool bridges the gap between abstract syntax and intuitive design.
